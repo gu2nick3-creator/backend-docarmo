@@ -1,24 +1,44 @@
+import { randomUUID } from "crypto";
 import { getPool } from "../db/pool.js";
 
 export const subcategoriesRepo = {
   async list() {
     const pool = getPool();
-    const [rows] = await pool.query("SELECT id, category_id, name, created_at FROM subcategories ORDER BY id DESC");
-    return rows;
+    const [rows] = await pool.query(
+      "SELECT id, category_id, name, created_at FROM subcategories ORDER BY created_at DESC"
+    );
+
+    // normaliza pra categoryId no JSON
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      categoryId: r.category_id,
+      created_at: r.created_at,
+    }));
   },
-  async create({ name, category_id }) {
+
+  async create({ name, categoryId }) {
     const pool = getPool();
-    const [r] = await pool.query("INSERT INTO subcategories (name, category_id) VALUES (?,?)", [name, category_id]);
-    return { id: r.insertId, name, category_id };
+    const id = randomUUID();
+    await pool.query(
+      "INSERT INTO subcategories (id, name, category_id) VALUES (?,?,?)",
+      [id, name, categoryId]
+    );
+    return { id, name, categoryId };
   },
-  async update(id, payload) {
+
+  async update(id, { name, categoryId }) {
     const pool = getPool();
-    await pool.query("UPDATE subcategories SET name=?, category_id=? WHERE id=?", [payload.name, payload.category_id, id]);
-    return { id, ...payload };
+    await pool.query(
+      "UPDATE subcategories SET name=?, category_id=? WHERE id=?",
+      [name, categoryId, id]
+    );
+    return { id, name, categoryId };
   },
+
   async remove(id) {
     const pool = getPool();
     await pool.query("DELETE FROM subcategories WHERE id=?", [id]);
     return { ok: true };
-  }
+  },
 };
