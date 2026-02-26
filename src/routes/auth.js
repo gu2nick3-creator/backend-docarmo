@@ -15,8 +15,12 @@ authRouter.post("/login", async (req, res) => {
 
   const { email, password } = parsed.data;
 
-  // TODO: troque por verificação real no banco (admins table) + bcrypt
-  const isValid = (email === "admin@docarmo.store" && password === "admin123");
+const adminEmail = process.env.ADMIN_EMAIL || "admin@docarmo.store";
+const adminPass = process.env.ADMIN_PASSWORD || "admin123";
+
+const isValid = email === adminEmail && password === adminPass;
+
+if (!isValid) return res.status(401).json({ message: "Invalid credentials" });
 
   if (!isValid) return res.status(401).json({ message: "Invalid credentials" });
 
