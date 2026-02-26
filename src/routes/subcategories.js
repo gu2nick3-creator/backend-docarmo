@@ -11,7 +11,7 @@ const bodySchema = z.object({
   category_id: z.string().min(1).optional(),
 });
 
-function pickCategoryId(body: any) {
+function pickCategoryId(body) {
   return body?.categoryId ?? body?.category_id;
 }
 
