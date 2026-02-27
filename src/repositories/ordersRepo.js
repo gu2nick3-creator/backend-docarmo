@@ -1,53 +1,57 @@
+import { randomUUID } from "crypto";
 import { getPool } from "../db/pool.js";
 
-function toNumber(v, fallback = 0) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
+function safeJsonParse(str, fallback) {
+  try {
+    if (!str) return fallback;
+    return JSON.parse(str);
+  } catch {
+    return fallback;
+  }
 }
 
 export const ordersRepo = {
   async list() {
     const pool = getPool();
-    // sua tabela tem created_at, então ordena por ele (melhor que id)
-    const [rows] = await pool.query("SELECT * FROM orders ORDER BY created_at DESC");
-    return rows;
+    const [rows] = await pool.query(
+      `SELECT id, status, total, items, customer, payment_id, created_at, updated_at
+       FROM orders
+       ORDER BY created_at DESC`
+    );
+
+    return (rows || []).map(r => ({
+      ...r,
+      total: Number(r.total || 0),
+      items: safeJsonParse(r.items, []),
+      customer: safeJsonParse(r.customer, null),
+    }));
   },
 
   async create(payload) {
     const pool = getPool();
 
-    // aceita vários formatos pra não quebrar o front
-    const total = toNumber(payload.total ?? payload.total_amount ?? payload.totalAmount, 0);
-
-    // no seu banco: items LONGTEXT, customer LONGTEXT (ideal guardar JSON)
-    const items =
-      payload.items !== undefined
-        ? JSON.stringify(payload.items)
-        : null;
-
-    const customer =
-      payload.customer !== undefined
-        ? JSON.stringify(payload.customer)
-        : null;
-
+    const id = randomUUID();
     const status = payload.status || "pending";
+    const total = Number(payload.total || 0);
 
-    const [r] = await pool.query(
-      `INSERT INTO orders (status, total, items, customer)
-       VALUES (?,?,?,?)`,
-      [status, total, items, customer]
+    const itemsJson = JSON.stringify(payload.items || []);
+    const customerJson = JSON.stringify(payload.customer || null);
+
+    await pool.query(
+      `INSERT INTO orders (id, status, total, items, customer, payment_id)
+       VALUES (?,?,?,?,?,?)`,
+      [id, status, total, itemsJson, customerJson, payload.payment_id || null]
     );
 
-    return { id: r.insertId, status, total, items, customer };
+    return { id, status, total, items: payload.items || [], customer: payload.customer || null, payment_id: payload.payment_id || null };
   },
 
   async updateStatus(id, status, payment_id = null) {
     const pool = getPool();
-    await pool.query("UPDATE orders SET status=?, payment_id=? WHERE id=?", [
-      status,
-      payment_id,
-      id,
-    ]);
+    await pool.query(
+      "UPDATE orders SET status=?, payment_id=? WHERE id=?",
+      [status, payment_id, String(id)]
+    );
     return { ok: true };
   },
 
@@ -55,8 +59,8 @@ export const ordersRepo = {
     const pool = getPool();
     const [rows] = await pool.query(
       "SELECT id, status, payment_id FROM orders WHERE id=?",
-      [id]
+      [String(id)]
     );
-    return rows[0] || null;
+    return rows?.[0] || null;
   },
 };
