@@ -10,6 +10,7 @@ import { productsRouter } from "./routes/products.js";
 import { ordersRouter } from "./routes/orders.js";
 import { mercadopagoRouter } from "./routes/mercadopago.js";
 import { webhooksRouter } from "./routes/webhooks.js";
+import { dashboardRouter } from "./routes/dashboard.js";
 
 dotenv.config();
 
@@ -60,6 +61,7 @@ app.use("/products", productsRouter);
 app.use("/orders", ordersRouter);
 app.use("/mercadopago", mercadopagoRouter);
 app.use("/webhooks", webhooksRouter);
+app.use("/dashboard", dashboardRouter);
 
 // ✅ 404 (opcional, mas ajuda a debugar)
 app.use((req, res) => {
