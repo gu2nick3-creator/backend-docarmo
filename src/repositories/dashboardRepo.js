@@ -7,7 +7,7 @@ export const dashboardRepo = {
     // total e média
     const [totalsRows] = await pool.query(`
       SELECT 
-        COALESCE(SUM(total_amount), 0) AS totalRevenue,
+        COALESCE SUM(total) as totalRevenue, 0) AS totalRevenue,
         COUNT(*) AS totalOrders
       FROM orders
     `);
