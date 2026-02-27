@@ -4,16 +4,16 @@ export const dashboardRepo = {
   async metrics() {
     const pool = getPool();
 
-    // total e média
+    // total e quantidade
     const [totalsRows] = await pool.query(`
-      SELECT 
-        COALESCE (SUM(total) as totalRevenue, 0) AS totalRevenue,
+      SELECT
+        COALESCE(SUM(total), 0) AS totalRevenue,
         COUNT(*) AS totalOrders
       FROM orders
     `);
 
-    const totalRevenue = Number(totalsRows?.[0]?.totalRevenue || 0);
-    const totalOrders = Number(totalsRows?.[0]?.totalOrders || 0);
+    const totalRevenue = Number(totalsRows?.[0]?.totalRevenue ?? 0);
+    const totalOrders = Number(totalsRows?.[0]?.totalOrders ?? 0);
     const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     // status counts
@@ -23,15 +23,13 @@ export const dashboardRepo = {
       GROUP BY status
     `);
 
-    // Seu banco usa status tipo: "pending", etc.
-    // Vamos devolver em PT-BR pro front (Pendente/Entregue/Cancelado/Finalizado)
     const mapStatus = (s) => {
       const x = String(s || "").toLowerCase();
       if (x === "pending" || x === "pendente") return "Pendente";
       if (x === "delivered" || x === "entregue") return "Entregue";
       if (x === "canceled" || x === "cancelled" || x === "cancelado") return "Cancelado";
       if (x === "finished" || x === "finalizado" || x === "paid" || x === "approved") return "Finalizado";
-      return s; // se aparecer um status novo, não quebra
+      return String(s || "");
     };
 
     const statusCounts = { Pendente: 0, Entregue: 0, Cancelado: 0, Finalizado: 0 };
